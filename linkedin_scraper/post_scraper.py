@@ -20,6 +20,9 @@ from selenium.common.exceptions import (
 )
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 from linkedin_scraper.utils import (
     logger,
@@ -51,8 +54,13 @@ class PostScraper:
         
         try:
             self.driver.get(post_url)
-            # random_delay(2, 4) — removed to speed up debugging, user can adjust
-            time.sleep(3)
+            # time.sleep(3) -> Optimized to wait for content
+            try:
+                WebDriverWait(self.driver, 5).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "article, .feed-shared-update-v2"))
+                )
+            except TimeoutException:
+                 logger.warning(f"Timeout waiting for post content: {post_url}")
             
             # 1. Expand comments
             self._expand_comments()

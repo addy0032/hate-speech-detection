@@ -46,6 +46,9 @@ def init_driver(headless: bool = False) -> webdriver.Chrome:
 
     # Disable cache to allow blocking to work effectively
     options.add_argument("--disable-application-cache")
+    
+    # Speed up: don't wait for all resources (images/styles) to finish loading
+    options.page_load_strategy = 'eager'
 
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
