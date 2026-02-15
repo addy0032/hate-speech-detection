@@ -1,0 +1,14 @@
+# __pycache__ folders anywhere
+__pycache__/
+
+# Python compiled files
+*.pyc
+*.pyo
+*.pyd
+
+# virtual environments
+venv/
+.env/
+
+# VS Code settings
+.vscode/
