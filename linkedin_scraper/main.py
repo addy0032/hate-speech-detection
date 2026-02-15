@@ -7,7 +7,7 @@ import os
 import sys
 
 # Ensure project root is in path so `linkedin_scraper` package is importable
-# This handles the case where the user runs `python linkedin_scraper/main.py` directly
+# This allows running `python linkedin_scraper/main.py` or just `main.py`
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.append(project_root)
@@ -44,6 +44,9 @@ def init_driver(headless: bool = False) -> webdriver.Chrome:
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option("useAutomationExtension", False)
 
+    # Disable cache to allow blocking to work effectively
+    options.add_argument("--disable-application-cache")
+
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=options)
     
@@ -58,6 +61,29 @@ def init_driver(headless: bool = False) -> webdriver.Chrome:
             """
         },
     )
+
+    # Enable Network domain explicitly
+    driver.execute_cdp_cmd("Network.enable", {})
+
+    # Block heavy media files using specific patterns for LinkedIn CDNs
+    driver.execute_cdp_cmd(
+        "Network.setBlockedURLs",
+        {
+            "urls": [
+                # Block the main image delivery endpoints
+                "*media.licdn.com/dms/image*",
+                "*licdn.com/dms/image*",
+
+                # Block video blobs and streams
+                "*linkedin.com/sc/h/*", 
+                "*.mp4*", 
+
+                # Block standard extensions just in case (with wildcards on both sides)
+                "*.jpg*", "*.jpeg*", "*.png*", "*.gif*", "*.webp*"
+            ]
+        }
+    )
+
     return driver
 
 
@@ -104,7 +130,7 @@ def main():
                 logger.info("   -> No comments extracted.")
             
             # Pause between posts
-            random_delay(5, 10)
+            random_delay(2, 4)
 
         logger.info("✨ Scraping complete!")
 

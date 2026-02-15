@@ -12,3 +12,6 @@ venv/
 
 # VS Code settings
 .vscode/
+
+comments.json
+cookies.json
