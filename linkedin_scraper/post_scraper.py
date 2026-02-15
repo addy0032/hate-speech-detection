@@ -25,6 +25,7 @@ from linkedin_scraper.utils import (
     logger,
     safe_click,
     short_delay,
+    apply_network_blocking,
 )
 
 
@@ -44,6 +45,9 @@ class PostScraper:
         # Open in a new tab to preserve the feed state in the main tab.
         self.driver.execute_script("window.open('');")
         self.driver.switch_to.window(self.driver.window_handles[-1])
+        
+        # Apply network blocking to the new tab
+        apply_network_blocking(self.driver)
         
         try:
             self.driver.get(post_url)

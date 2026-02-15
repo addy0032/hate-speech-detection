@@ -99,3 +99,40 @@ def safe_click(driver: WebDriver, element: WebElement, retries: int = 3) -> bool
                     return False
                 short_delay()
     return False
+
+
+# ---------------------------------------------------------------------------
+# Network Blocking (CDP)
+# ---------------------------------------------------------------------------
+
+def apply_network_blocking(driver: WebDriver) -> None:
+    """
+    Apply CDP Network blocking rules to the current target (tab/window).
+    Blocks images, videos, and other heavy media.
+    """
+    try:
+        # Enable Network domain explicitly
+        driver.execute_cdp_cmd("Network.enable", {})
+
+        # Block heavy media files using specific patterns for LinkedIn CDNs
+        driver.execute_cdp_cmd(
+            "Network.setBlockedURLs",
+            {
+                "urls": [
+                    # Block the main image delivery endpoints
+                    "*media.licdn.com/dms/image*",
+                    "*licdn.com/dms/image*",
+                    "*licdn.com/dms/prop/image*",
+
+                    # Block video blobs and streams
+                    "*linkedin.com/sc/h/*", 
+                    "*.mp4*", 
+                    "*.avi*", "*.mov*", "*.mkv*", "*.wmv*",
+
+                    # Block standard extensions just in case (with wildcards on both sides)
+                    "*.jpg*", "*.jpeg*", "*.png*", "*.gif*", "*.webp*"
+                ]
+            }
+        )
+    except Exception as e:
+        logger.warning(f"Failed to apply network blocking: {e}")

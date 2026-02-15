@@ -21,7 +21,7 @@ from linkedin_scraper.auth import LinkedInAuth
 from linkedin_scraper.feed_scraper import FeedScraper
 from linkedin_scraper.post_scraper import PostScraper
 from linkedin_scraper.storage import Storage
-from linkedin_scraper.utils import logger, random_delay
+from linkedin_scraper.utils import logger, random_delay, apply_network_blocking
 
 
 # Default target (can be overridden via CLI)
@@ -62,27 +62,8 @@ def init_driver(headless: bool = False) -> webdriver.Chrome:
         },
     )
 
-    # Enable Network domain explicitly
-    driver.execute_cdp_cmd("Network.enable", {})
-
-    # Block heavy media files using specific patterns for LinkedIn CDNs
-    driver.execute_cdp_cmd(
-        "Network.setBlockedURLs",
-        {
-            "urls": [
-                # Block the main image delivery endpoints
-                "*media.licdn.com/dms/image*",
-                "*licdn.com/dms/image*",
-
-                # Block video blobs and streams
-                "*linkedin.com/sc/h/*", 
-                "*.mp4*", 
-
-                # Block standard extensions just in case (with wildcards on both sides)
-                "*.jpg*", "*.jpeg*", "*.png*", "*.gif*", "*.webp*"
-            ]
-        }
-    )
+    # Enable Network blocking
+    apply_network_blocking(driver)
 
     return driver
 
