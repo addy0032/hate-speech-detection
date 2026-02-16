@@ -5,3 +5,5 @@ groq
 fastapi
 uvicorn
 pydantic
+yt-dlp
+youtube-comment-downloader

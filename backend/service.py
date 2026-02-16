@@ -10,6 +10,7 @@ from linkedin_scraper.storage import Storage
 from linkedin_scraper.auth import LinkedInAuth
 from linkedin_scraper.utils import logger
 from .models import ScrapeStatus, ScrapeResult
+from youtube_scraper.main import scrape_channel
 
 # In-memory storage for task status (replace with proper DB in production)
 tasks: Dict[str, ScrapeStatus] = {}
@@ -116,6 +117,48 @@ def start_scraping(urls: list[str], days: int = 30) -> str:
     thread.start()
     
     return task_id
+
+def run_youtube_task(task_id: str, channel_url: str, days: int = 30):
+    task = tasks[task_id]
+    task.status = "processing"
+    
+    def progress_callback(msg):
+        task.progress.append(msg)
+        
+    try:
+        results = scrape_channel(channel_url, days, callback=progress_callback)
+        
+        final_results = []
+        for vid in results:
+             # Transform comments if necessary? logic in scrape_channel returns dicts.
+             # but we need to match ScrapeResult expectations if we use it.
+             # ScrapeResult.comments is List[dict].
+             final_results.append(ScrapeResult(
+                 post_url=vid.get('post_url'),
+                 comment_count=vid.get('comment_count'),
+                 comments=vid.get('comments')
+             ))
+        
+        task.results = final_results
+        task.status = "completed"
+        task.progress.append("YouTube scraping completed successfully.")
+        
+    except Exception as e:
+        logger.exception(f"YouTube task failed: {e}")
+        task.status = "failed"
+        task.error = str(e)
+        task.progress.append(f"Error: {str(e)}")
+
+def start_youtube_scraping(channel_url: str, days: int = 30) -> str:
+    task_id = str(uuid.uuid4())
+    tasks[task_id] = ScrapeStatus(task_id=task_id, status="pending")
+    
+    thread = threading.Thread(target=run_youtube_task, args=(task_id, channel_url, days))
+    thread.daemon = True
+    thread.start()
+    
+    return task_id
+
 
 
 import json
