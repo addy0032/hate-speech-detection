@@ -16,7 +16,7 @@ class CommentFetcher:
         comments_found = []
         
         try:
-            generator = self.downloader.get_comments_from_url(url, sort_by=SORT_BY_POPULAR)
+            generator = self.downloader.get_comments_from_url(url, sort_by=SORT_BY_RECENT)
             
             if max_comments:
                 generator = islice(generator, max_comments)

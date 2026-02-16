@@ -1,6 +1,7 @@
 from .channel_fetcher import ChannelFetcher
 from .comment_fetcher import CommentFetcher
 from linkedin_scraper.storage import Storage # Use shared storage
+from linkedin_scraper.classifier import CommentClassifier # Import classifier
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,6 +21,9 @@ def scrape_channel(channel_url, days, callback=None):
     channel_fetcher = ChannelFetcher()
     comment_fetcher = CommentFetcher()
     storage = Storage()
+    classifier = CommentClassifier() # Initialize classifier
+    if not classifier.client:
+         if callback: callback("Warning: Classifier not initialized (check API key).")
     
     # 1. Fetch Videos
     if callback: callback("Fetching videos from channel...")
@@ -42,16 +46,25 @@ def scrape_channel(channel_url, days, callback=None):
         
         # Transform comments to standard format immediately
         transformed_comments = []
+        if callback: callback(f"Classifying {len(comments)} comments...")
+        
         for c in comments:
+            text = c.get('text', '')
+            label = "unknown"
+            if text and classifier.client:
+                label = classifier.classify(text)
+            elif not text:
+                label = "safe" # Empty comment?
+            
             transformed_comments.append({
                 "comment_id": c.get('comment_id'), # Keep original ID if needed internally
                 "urn": c.get('comment_id'), # Standard key
-                "comment": c.get('text'),   # Standard key
+                "comment": text,   # Standard key
                 "author_name": c.get('author'), # Standard key
                 "timestamp": c.get('time'),
                 "votes": c.get('votes'),
                 "photo": c.get('photo'),
-                "label": "unknown" # Default label
+                "label": label 
             })
         
         video_data = {
