@@ -41,7 +41,7 @@ _TIME_UNITS = {
 class FeedScraper:
     """Scroll a LinkedIn organisation / school page and collect recent post URLs."""
 
-    def __init__(self, driver: WebDriver, max_days: int = 14) -> None:
+    def __init__(self, driver: WebDriver, max_days: int = 30) -> None:
         self.driver = driver
         self.max_days = max_days
         self.cutoff = datetime.now(timezone.utc) - timedelta(days=max_days)
@@ -56,6 +56,27 @@ class FeedScraper:
         ``{"post_url": ..., "estimated_time": ...}`` dicts whose posts
         are within the last ``max_days`` days.
         """
+        # --- URL Normalization ---
+        # Ensure we are on the 'Posts' tab with 'All' view for companies/schools
+        if "linkedin.com/company/" in url or "linkedin.com/school/" in url:
+            if "/posts" not in url:
+                # User provided base page, append posts
+                url = url.rstrip("/") + "/posts/?feedView=all"
+            elif "feedView=" not in url:
+                # User provided posts tab, ensure query param
+                if "?" in url:
+                     url += "&feedView=all"
+                else:
+                     url += "?feedView=all"
+        elif "linkedin.com/in/" in url:
+             if "recent-activity" not in url:
+                 url = url.rstrip("/") + "/recent-activity/all/"
+             elif "recent-activity/all" not in url:
+                 # e.g. /recent-activity/shares/ -> force all? or leave as is?
+                 # User asked for "recent-activity/all/" specifically.
+                 if url.endswith("/recent-activity/") or url.endswith("/recent-activity"):
+                     url = url.rstrip("/") + "/all/"
+        
         logger.info(f"Navigating to feed: {url}")
         self.driver.get(url)
         random_delay(3, 5)

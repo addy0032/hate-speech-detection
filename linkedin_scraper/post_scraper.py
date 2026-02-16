@@ -219,8 +219,12 @@ class PostScraper:
                 # Clean up author name (remove "Status is online" etc if leaked)
                 author_name = author_name.split("•")[0].strip()
 
+                # Extract URN/ID
+                urn = el.get_attribute("data-id") or el.get_attribute("data-urn") or ""
+
                 results.append({
                     "post_url": post_url,
+                    "urn": urn,
                     "comment": text,
                     "user_profile_url": profile_url,
                     "author_name": author_name

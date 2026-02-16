@@ -5,6 +5,10 @@ main.py — Orchestrator for the LinkedIn Scraper.
 import argparse
 import os
 import sys
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Ensure project root is in path so `linkedin_scraper` package is importable
 # This allows running `python linkedin_scraper/main.py` or just `main.py`
@@ -18,6 +22,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
 
 from linkedin_scraper.auth import LinkedInAuth
+from linkedin_scraper.classifier import CommentClassifier
 from linkedin_scraper.feed_scraper import FeedScraper
 from linkedin_scraper.post_scraper import PostScraper
 from linkedin_scraper.storage import Storage
@@ -74,7 +79,7 @@ def init_driver(headless: bool = False) -> webdriver.Chrome:
 def main():
     parser = argparse.ArgumentParser(description="LinkedIn Scraper")
     parser.add_argument("--url", type=str, default=DEFAULT_TARGET_URL, help="Target LinkedIn Page URL")
-    parser.add_argument("--days", type=int, default=14, help="Max days age for posts")
+    parser.add_argument("--days", type=int, default=30, help="Max days age for posts")
     parser.add_argument("--headless", action="store_true", help="Run in headless mode")
     args = parser.parse_args()
 
@@ -117,6 +122,58 @@ def main():
             random_delay(2, 4)
 
         logger.info("✨ Scraping complete!")
+
+        # 4. Batch Classification (Phase 2)
+        logger.info("🤖 Starting Batch Classification Phase...")
+        
+        # Reload storage to ensure we have latest data
+        # (Though self.data is already in memory, good practice if modified externally)
+        
+        # Find pending comments (unknown, pending, or empty string labels)
+        pending_comments = [
+            c for c in storage.data 
+            if not c.get("label") or c.get("label") in ["unknown", "pending", ""]
+        ]
+        
+        if pending_comments:
+            logger.info(f"🔍 Found {len(pending_comments)} comments pending classification.")
+            classifier = CommentClassifier()
+            
+            if classifier.client:
+                processed_count = 0
+                errors = 0
+                total_pending = len(pending_comments)
+                
+                logger.info(f"   Using model: openai/gpt-oss-120b (via Groq)")
+                
+                for i, comment in enumerate(pending_comments, 1):
+                    text = comment.get("comment", "")
+                    if not text:
+                        comment["label"] = "safe" # Empty is safe
+                        processed_count += 1
+                        continue
+
+                    # Classify
+                    label = classifier.classify(text)
+                    comment["label"] = label
+                    
+                    if not label or label == "unknown" or label == "error":
+                        logger.warning(f"   ⚠️  Failed to classify comment {i}: '{text[:20]}...' -> '{label}'")
+                        errors += 1
+                    else:
+                        processed_count += 1
+                        
+                    # Save periodically
+                    if i % 5 == 0:
+                        storage.save()
+                        logger.info(f"   Classified {i}/{total_pending} comments...")
+
+                storage.save()
+                logger.info(f"✅ Batch classification complete! Processed: {processed_count}. Errors: {errors}.")
+            else:
+                logger.warning("⚠️  Skipping classification — Groq client not available. Check API Key.")
+        else:
+             logger.info("✨ All comments are already classified.")
 
     except KeyboardInterrupt:
         logger.info("Interrupted by user. Closing ...")

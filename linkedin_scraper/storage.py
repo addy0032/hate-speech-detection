@@ -24,27 +24,42 @@ class Storage:
     # Public API
     # ------------------------------------------------------------------
 
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
     def add_comments(self, comments: list[dict]) -> int:
         """
         Add a batch of comment dicts. Each dict should contain at least:
           - post_url
           - comment
-        Optional keys: user_profile_url
-
-        Returns the number of *new* (non-duplicate) comments added.
+        Optional keys: user_profile_url, urn
         """
         added = 0
         for item in comments:
-            key = (item.get("post_url", ""), item.get("comment", ""))
-            if key in self._seen or not key[1]:
+            urn = item.get("urn")
+            post_url = item.get("post_url", "")
+            text = item.get("comment", "")
+            
+            # Primary key: URN. Fallback: (post_url, text)
+            if urn:
+                key = urn
+            else:
+                key = (post_url, text)
+            
+            if key in self._seen or (not urn and not text):
                 continue
+                
             self._seen.add(key)
 
             entry = {
                 "index": self._next_index(),
-                "post_url": item.get("post_url", ""),
-                "comment": item.get("comment", ""),
+                "urn": urn,
+                "post_url": post_url,
+                "comment": text,
                 "user_profile_url": item.get("user_profile_url", ""),
+                "author_name": item.get("author_name", ""),
+                "label": item.get("label", "unknown"),
                 "scraped_at": datetime.now(timezone.utc).isoformat(),
             }
             self.data.append(entry)
@@ -74,8 +89,14 @@ class Storage:
             with open(self.filepath, "r", encoding="utf-8") as fh:
                 self.data = json.load(fh)
             for entry in self.data:
-                key = (entry.get("post_url", ""), entry.get("comment", ""))
-                self._seen.add(key)
+                urn = entry.get("urn")
+                if urn:
+                    self._seen.add(urn)
+                else:
+                    # Fallback for old data without URN
+                    key = (entry.get("post_url", ""), entry.get("comment", ""))
+                    self._seen.add(key)
+                    
             logger.info(f"Loaded {len(self.data)} existing comment(s) from {self.filepath}")
         except (json.JSONDecodeError, OSError) as exc:
             logger.warning(f"Could not load {self.filepath}: {exc}")
