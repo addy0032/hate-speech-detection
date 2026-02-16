@@ -34,7 +34,7 @@ def run_scraper_task(task_id: str, urls: list[str], days: int = 30):
         # For now, let's build results in memory to return to frontend, 
         # but also use the existing Storage to persist to JSON as a backup/cache.
         storage = Storage() 
-        results = []
+        task.results = [] # Initialize results list
 
         classifier = CommentClassifier()
         if not classifier.client:
@@ -85,7 +85,8 @@ def run_scraper_task(task_id: str, urls: list[str], days: int = 30):
             storage.add_comments(comments)
             storage.save()
 
-            results.append(ScrapeResult(
+            # Append result incrementally for frontend polling
+            task.results.append(ScrapeResult(
                 post_url=url,
                 comment_count=len(comments),
                 comments=comments
@@ -94,7 +95,6 @@ def run_scraper_task(task_id: str, urls: list[str], days: int = 30):
             task.progress.append(f"Finished post {i}")
             time.sleep(2) # rate limit buffer
 
-        task.results = results
         task.status = "completed"
         task.progress.append("All tasks completed successfully.")
 

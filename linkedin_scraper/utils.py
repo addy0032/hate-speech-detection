@@ -134,5 +134,15 @@ def apply_network_blocking(driver: WebDriver) -> None:
                 ]
             }
         )
+        
+        # Inject CSS/JS to hide/remove video elements from DOM prevents them from trying to load
+        driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+            "source": """
+                const style = document.createElement('style');
+                style.type = 'text/css';
+                style.innerHTML = 'video, .video-js, .media-player__player, .feed-shared-update-v2__content .linkedin-player { display: none !important; }';
+                document.head.appendChild(style);
+            """
+        })
     except Exception as e:
         logger.warning(f"Failed to apply network blocking: {e}")

@@ -32,21 +32,55 @@ export default function Dashboard() {
   const [days, setDays] = useState(30);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [status, setStatus] = useState<ScrapeStatus | null>(null);
+  const [allResults, setAllResults] = useState<ScrapeResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Helper to load all existing data
+  const fetchExistingData = async () => {
+    try {
+      const res = await fetch("http://localhost:8000/load-existing");
+      if (res.ok) {
+        const data = await res.json();
+        setStatus(data);
+        if (data.results) {
+          setAllResults(data.results);
+        }
+        setTaskId(data.task_id);
+      }
+    } catch (e) {
+      console.log("No existing data found or backend not ready");
+    }
+  };
 
   // Polling logic
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (taskId && status?.status !== "completed" && status?.status !== "failed") {
+    if (taskId && taskId !== "existing_data" && status?.status !== "completed" && status?.status !== "failed") {
       interval = setInterval(async () => {
         try {
           const res = await fetch(`http://localhost:8000/status/${taskId}`);
           if (res.ok) {
-            const data = await res.json();
-            setStatus(data);
-            if (data.status === "completed" || data.status === "failed") {
+            const data: ScrapeStatus = await res.json();
+
+            if (data.results && data.results.length > 0) {
+              setAllResults(prev => {
+                const newMap = new Map(prev.map(p => [p.post_url, p]));
+                data.results?.forEach(r => newMap.set(r.post_url, r));
+                return Array.from(newMap.values());
+              });
+            }
+
+            if (data.status === "completed") {
               setIsLoading(false);
               clearInterval(interval);
+              setStatus(data);
+              await fetchExistingData();
+            } else if (data.status === "failed") {
+              setStatus(data);
+              setIsLoading(false);
+              clearInterval(interval);
+            } else {
+              setStatus(data);
             }
           }
         } catch (e) { console.error(e); }
@@ -57,19 +91,7 @@ export default function Dashboard() {
 
   // Load existing data on mount
   useEffect(() => {
-    async function loadExisting() {
-      try {
-        const res = await fetch("http://localhost:8000/load-existing");
-        if (res.ok) {
-          const data = await res.json();
-          setStatus(data);
-          setTaskId(data.task_id);
-        }
-      } catch (e) {
-        console.log("No existing data found or backend not ready");
-      }
-    }
-    loadExisting();
+    fetchExistingData();
   }, []);
 
   const handleScrape = async () => {
@@ -106,11 +128,11 @@ export default function Dashboard() {
   };
 
   // Calculate stats
-  const totalPosts = status?.results?.length || 0;
-  const totalComments = status?.results?.reduce((acc, curr) => acc + curr.comment_count, 0) || 0;
-  const hateCount = status?.results?.reduce((acc, curr) =>
+  const totalPosts = allResults.length;
+  const totalComments = allResults.reduce((acc, curr) => acc + curr.comment_count, 0);
+  const hateCount = allResults.reduce((acc, curr) =>
     acc + curr.comments.filter((c: any) => c.label === "hate" || c.label === "toxic").length, 0
-  ) || 0;
+  );
   const toxicCount = 0; // Merged with hate for now or calculate separately if label distinguishes
 
   return (
@@ -227,15 +249,15 @@ export default function Dashboard() {
           </div>
 
           {/* Results Grid */}
-          {status?.results && status.results.length > 0 && (
+          {allResults.length > 0 && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-semibold tracking-tight">Results Preview</h3>
               </div>
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {status.results.map((res, i) => (
+                {allResults.map((res, i) => (
                   <PostCard
-                    key={i}
+                    key={`${res.post_url}-${i}`}
                     postUrl={res.post_url}
                     comments={res.comments}
                     index={i + 1}
