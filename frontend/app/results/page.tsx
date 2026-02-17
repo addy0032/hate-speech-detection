@@ -46,7 +46,8 @@ function ResultsContent() {
     const filteredResults = results.filter(r => {
         // Heuristic for platform detection
         const isYoutube = r.post_url.includes('youtube.com') || r.post_url.includes('youtu.be');
-        const itemPlatform: Platform = isYoutube ? 'youtube' : 'linkedin';
+        const isInstagram = r.post_url.includes('instagram.com');
+        const itemPlatform: Platform = isYoutube ? 'youtube' : isInstagram ? 'instagram' : 'linkedin';
 
         if (activePlatform === 'all') return true;
         return itemPlatform === activePlatform;
@@ -71,7 +72,8 @@ function ResultsContent() {
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {filteredResults.length > 0 ? filteredResults.map((res, i) => {
                         const isYoutube = res.post_url.includes('youtube.com') || res.post_url.includes('youtu.be');
-                        const platform = isYoutube ? 'youtube' : 'linkedin';
+                        const isInstagram = res.post_url.includes('instagram.com');
+                        const platform = isYoutube ? 'youtube' : isInstagram ? 'instagram' : 'linkedin';
 
                         // Calculate hate count
                         const hateCount = res.comments.filter((c: any) => c.label === 'hate' || c.label === 'toxic').length;

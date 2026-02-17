@@ -36,7 +36,7 @@ export function PlatformTaskForm({ onStartScrape, isLoading }: PlatformTaskFormP
             </CardHeader>
             <CardContent>
                 <Tabs defaultValue="linkedin" onValueChange={(v: string) => setPlatform(v as Platform)} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 mb-6">
+                    <TabsList className="grid w-full grid-cols-3 mb-6">
                         <TabsTrigger value="linkedin" className="flex items-center gap-2">
                             <PlatformIcon platform="linkedin" className="h-4 w-4" />
                             LinkedIn
@@ -45,12 +45,17 @@ export function PlatformTaskForm({ onStartScrape, isLoading }: PlatformTaskFormP
                             <PlatformIcon platform="youtube" className="h-4 w-4" />
                             YouTube
                         </TabsTrigger>
+                        <TabsTrigger value="instagram" className="flex items-center gap-2">
+                            <PlatformIcon platform="instagram" className="h-4 w-4" />
+                            Instagram
+                        </TabsTrigger>
                     </TabsList>
 
                     <div className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="urls">
-                                {platform === "linkedin" ? "Target URLs (Posts or Pages)" : "Channel URL or Username"}
+                                {platform === "linkedin" ? "Target URLs (Posts or Pages)" :
+                                    platform === "instagram" ? "Instagram Username" : "Channel URL or Username"}
                             </Label>
                             <Textarea
                                 id="urls"
@@ -58,7 +63,7 @@ export function PlatformTaskForm({ onStartScrape, isLoading }: PlatformTaskFormP
                                 onChange={(e) => setUrls(e.target.value)}
                                 placeholder={platform === "linkedin"
                                     ? "https://www.linkedin.com/company/...\nhttps://www.linkedin.com/posts/..."
-                                    : "https://www.youtube.com/@ChannelName"
+                                    : platform === "instagram" ? "username (e.g. speaking_smth)" : "https://www.youtube.com/@ChannelName"
                                 }
                                 className="font-mono text-sm min-h-[120px]"
                                 disabled={isLoading}
@@ -66,7 +71,7 @@ export function PlatformTaskForm({ onStartScrape, isLoading }: PlatformTaskFormP
                             <p className="text-[0.8rem] text-muted-foreground">
                                 {platform === "linkedin"
                                     ? "One URL per line."
-                                    : "Enter the full channel URL or username."
+                                    : platform === "instagram" ? "Enter the Instagram username." : "Enter the full channel URL or username."
                                 }
                             </p>
                         </div>
@@ -88,7 +93,11 @@ export function PlatformTaskForm({ onStartScrape, isLoading }: PlatformTaskFormP
                             <Button
                                 onClick={handleSubmit}
                                 disabled={isLoading || !urls.trim()}
-                                className={platform === "linkedin" ? "bg-blue-600 hover:bg-blue-700" : "bg-red-600 hover:bg-red-700"}
+                                className={
+                                    platform === "linkedin" ? "bg-blue-600 hover:bg-blue-700" :
+                                        platform === "youtube" ? "bg-red-600 hover:bg-red-700" :
+                                            "bg-pink-600 hover:bg-pink-700"
+                                }
                                 size="lg"
                             >
                                 {isLoading ? (
@@ -99,7 +108,7 @@ export function PlatformTaskForm({ onStartScrape, isLoading }: PlatformTaskFormP
                                 ) : (
                                     <>
                                         <Play className="mr-2 h-4 w-4 fill-current" />
-                                        Start {platform === "linkedin" ? "LinkedIn" : "YouTube"} Scrape
+                                        Start {platform === "linkedin" ? "LinkedIn" : platform === "youtube" ? "YouTube" : "Instagram"} Scrape
                                     </>
                                 )}
                             </Button>

@@ -85,11 +85,13 @@ export function Sidebar({ className }: SidebarProps) {
                                     <span className="ml-auto text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Active</span>
                                 </Button>
                             </Link>
-                            <Button variant="ghost" className="w-full justify-start pl-4 font-normal opacity-60" disabled>
-                                <PlatformIcon platform="instagram" className="mr-2 h-4 w-4" />
-                                Instagram
-                                <span className="ml-auto text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">Soon</span>
-                            </Button>
+                            <Link href="/results?platform=instagram">
+                                <Button variant="ghost" className="w-full justify-start pl-4 font-normal">
+                                    <PlatformIcon platform="instagram" className="mr-2 h-4 w-4" />
+                                    Instagram
+                                    <span className="ml-auto text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Active</span>
+                                </Button>
+                            </Link>
                             <Button variant="ghost" className="w-full justify-start pl-4 font-normal opacity-60" disabled>
                                 <PlatformIcon platform="facebook" className="mr-2 h-4 w-4" />
                                 Facebook

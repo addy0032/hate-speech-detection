@@ -52,7 +52,9 @@ export default function TasksPage() {
         setStatus(null);
         setTaskId(null);
 
-        const endpoint = platform === 'youtube' ? 'http://localhost:8000/scrape/youtube' : 'http://localhost:8000/scrape';
+        let endpoint = 'http://localhost:8000/scrape';
+        if (platform === 'youtube') endpoint = 'http://localhost:8000/scrape/youtube';
+        if (platform === 'instagram') endpoint = 'http://localhost:8000/scrape/instagram';
 
         try {
             const res = await fetch(endpoint, {

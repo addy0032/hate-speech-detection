@@ -39,18 +39,24 @@ export default function DashboardPage() {
                     let youtubeComments = 0;
                     let youtubeHate = 0;
 
+                    let instagramPosts = 0;
+                    let instagramComments = 0;
+                    let instagramHate = 0;
+
                     results.forEach((r: any) => {
                         totalComments += r.comment_count;
                         const hate = r.comments.filter((c: any) => c.label === 'hate' || c.label === 'toxic' || c.label === 'severe_toxic' || c.label === 'identity_hate').length;
                         hateCount += hate;
 
                         // Identify platform
-                        // Simple heuristic: if post_url contains youtube, it's youtube. else linkedin.
-                        // Or scrape_channel adds specific field, but currently we map to post_url.
                         if (r.post_url && (r.post_url.includes('youtube.com') || r.post_url.includes('youtu.be'))) {
                             youtubeVideos++;
                             youtubeComments += r.comment_count;
                             youtubeHate += hate;
+                        } else if (r.post_url && r.post_url.includes('instagram.com')) {
+                            instagramPosts++;
+                            instagramComments += r.comment_count;
+                            instagramHate += hate;
                         } else {
                             linkedinPosts++;
                             linkedinComments += r.comment_count;
@@ -61,6 +67,7 @@ export default function DashboardPage() {
                     let activePlatforms = 0;
                     if (linkedinPosts > 0) activePlatforms++;
                     if (youtubeVideos > 0) activePlatforms++;
+                    if (instagramPosts > 0) activePlatforms++;
 
                     setStats({
                         totalPosts,
@@ -75,7 +82,7 @@ export default function DashboardPage() {
                             postsScraped: linkedinPosts,
                             commentsAnalyzed: linkedinComments,
                             hateCount: linkedinHate,
-                            isActive: true // Always active in this demo
+                            isActive: true
                         },
                         {
                             platform: 'youtube',
@@ -86,10 +93,10 @@ export default function DashboardPage() {
                         },
                         {
                             platform: 'instagram',
-                            postsScraped: 0,
-                            commentsAnalyzed: 0,
-                            hateCount: 0,
-                            isActive: false
+                            postsScraped: instagramPosts,
+                            commentsAnalyzed: instagramComments,
+                            hateCount: instagramHate,
+                            isActive: true
                         },
                         {
                             platform: 'facebook',
