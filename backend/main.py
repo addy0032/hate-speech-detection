@@ -1,7 +1,7 @@
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from .models import ScrapeRequest, ScrapeStatus, ScrapeResult
-from .service import run_scraper_task, get_task_status, tasks, start_scraping, load_existing_comments, start_youtube_scraping
+from .service import run_scraper_task, get_task_status, tasks, start_scraping, load_existing_comments, start_youtube_scraping, start_instagram_scraping
 import csv
 import io
 from fastapi.responses import StreamingResponse
@@ -32,6 +32,17 @@ async def scrape_youtube(request: ScrapeRequest):
         
     # Take the first URL as the channel
     task_id = start_youtube_scraping(request.urls[0], request.days)
+    return tasks[task_id]
+
+@app.post("/scrape/instagram", response_model=ScrapeStatus)
+async def scrape_instagram(request: ScrapeRequest):
+    if not request.urls:
+        raise HTTPException(status_code=400, detail="No profile username provided")
+        
+    # Take the first URL/String as the username
+    # Naive cleanup if full URL is passed
+    username = request.urls[0].replace("https://www.instagram.com/", "").strip("/")
+    task_id = start_instagram_scraping(username, request.days)
     return tasks[task_id]
 
 @app.get("/load-existing", response_model=ScrapeStatus)

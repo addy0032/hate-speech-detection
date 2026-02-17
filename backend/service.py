@@ -11,6 +11,7 @@ from linkedin_scraper.auth import LinkedInAuth
 from linkedin_scraper.utils import logger
 from .models import ScrapeStatus, ScrapeResult
 from youtube_scraper.main import scrape_channel
+from instagram_scraper.main import scrape_instagram_profile
 
 # In-memory storage for task status (replace with proper DB in production)
 tasks: Dict[str, ScrapeStatus] = {}
@@ -210,3 +211,41 @@ def load_existing_comments() -> ScrapeStatus:
 
 def get_task_status(task_id: str) -> ScrapeStatus:
     return tasks.get(task_id)
+
+def run_instagram_task(task_id: str, username: str, days: int = 30):
+    task = tasks[task_id]
+    task.status = "processing"
+    
+    def progress_callback(msg):
+        task.progress.append(msg)
+        
+    try:
+        results = scrape_instagram_profile(username, days, callback=progress_callback)
+        
+        final_results = []
+        for post in results:
+             final_results.append(ScrapeResult(
+                 post_url=post.get('post_url'),
+                 comment_count=post.get('comment_count'),
+                 comments=post.get('comments')
+             ))
+        
+        task.results = final_results
+        task.status = "completed"
+        task.progress.append("Instagram scraping completed successfully.")
+        
+    except Exception as e:
+        logger.exception(f"Instagram task failed: {e}")
+        task.status = "failed"
+        task.error = str(e)
+        task.progress.append(f"Error: {str(e)}")
+
+def start_instagram_scraping(username: str, days: int = 30) -> str:
+    task_id = str(uuid.uuid4())
+    tasks[task_id] = ScrapeStatus(task_id=task_id, status="pending")
+    
+    thread = threading.Thread(target=run_instagram_task, args=(task_id, username, days))
+    thread.daemon = True
+    thread.start()
+    
+    return task_id
